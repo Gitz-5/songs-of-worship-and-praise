@@ -342,7 +342,7 @@ body * {
     margin-top: 30px;
   }  
     #homeScreen {
-    min-height: calc(100vh - 64px);
+    min-height: calc(89vh - 60px);
 }
 
 #homeScreen .app-version {
@@ -366,7 +366,28 @@ body * {
   white-space: pre-line;
   font-size: 18px;
 }
+/* Lyrics header */
+.lyrics-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
 
+/* Icon-only share button */
+.share-button {
+    display: block;
+    width: 45px;
+    height: 45px;
+    border: 1px solid #000;
+    background: white;
+    color: black;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}
       
 #lyricsScreen .song-navigation {
     margin-top: auto;
@@ -386,7 +407,14 @@ body * {
     pointer-events: none;
     transition: opacity 0.3s ease, bottom 0.3s ease;
 }
-
+/* Disable text selection throughout the app */
+body,
+body * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
 .toast.show {
     opacity: 1;
     bottom: 45px;
@@ -433,6 +461,11 @@ body * {
   line-height: 1.6;
   white-space: pre-line;
   font-size: 18px;
+      
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+      
 }
 
     </style>
@@ -509,7 +542,7 @@ body * {
 <!-- SONG SCREEN -->
 <main id="songsScreen" class="screen hidden">
 
-    <button class="back-button" onclick="showHome()">
+    <button class="back-button" onclick="history.back()">
         ← Back
     </button>
 
@@ -526,7 +559,7 @@ body * {
     <!-- SEARCH SCREEN -->
 <main id="searchScreen" class="screen hidden">
 
-    <button class="back-button" onclick="showHome()">
+    <button class="back-button" onclick="history.back()">
         ← Back
     </button>
 
@@ -556,7 +589,7 @@ body * {
     <!-- SETTINGS SCREEN -->
 <main id="settingsScreen" class="screen hidden">
 
-    <button class="back-button" onclick="showHome()">
+    <button class="back-button" onclick="history.back()">
         ← Back
     </button>
 
@@ -621,7 +654,7 @@ body * {
 </main>
 <main id="aboutScreen" class="screen hidden">
 
-    <button class="back-button" onclick="showHome()">
+    <button class="back-button" onclick="showhome()">
         ← Back
     </button>
 
@@ -667,7 +700,7 @@ body * {
     <!-- FAVORITES SCREEN -->
     <main id="favoritesScreen" class="screen hidden">
 
-        <button class="back-button" onclick="showHome()">
+        <button class="back-button" onclick="history.back()">
             ← Back
         </button>
 
@@ -685,11 +718,17 @@ body * {
 <!-- SONG LYRICS SCREEN -->
 <main id="lyricsScreen" class="screen hidden">
 
-    <button class="back-button" onclick="showSongs()">
+    <button class="back-button" onclick="history.back()">
+
         ← Back
     </button>
-
+<div class="lyrics-header">
     <h1 id="songTitle">Song Title</h1>
+
+    <button class="share-button" onclick="shareSong()" aria-label="Share">
+        ↗
+    </button>
+</div>
 
     <div id="lyricsText">
         Song lyrics will appear here.
@@ -764,14 +803,11 @@ function getCurrentScreen() {
     return "homeScreen";
       }
         function showHome() {
-
     hideAllScreens();
+    document.getElementById("homeScreen").classList.remove("hidden");
+    document.getElementById("menuButton").classList.remove("hidden");
+}
 
-    document.getElementById(previousScreen).classList.remove("hidden");
-
-    previousScreen = "homeScreen";
-          document.getElementById("menuButton").classList.remove("hidden");
-        }
 
 function contactDeveloper() {
   const email = "kipzgitz@gmail.com";
@@ -806,8 +842,10 @@ function contactDeveloper() {
 
   songList.innerHTML = htmlBuffer;
   document.getElementById("songsScreen").classList.remove("hidden");
-}
-
+          if (!handlingBack) {
+    history.pushState({ screen: "songs" }, "", "#songs");
+          }
+        }
       function showSearch() {
   hideAllScreens();
   let searchScreen = document.getElementById("searchScreen");
@@ -829,6 +867,9 @@ function handleSearchInput() {
     clearBtn.classList.remove("hidden");
   } else {
     clearBtn.classList.add("hidden");
+    if (!handlingBack) {
+    history.pushState({ screen: "search" }, "", "#search");
+    }
   }
 
   searchSongs();
@@ -876,29 +917,20 @@ function searchSongs() {
     results.innerHTML = htmlBuffer;
   }
 }
-
 function showFavorites() {
-
     hideAllScreens();
 
     let favoriteList = document.getElementById("favoriteList");
 
     if (favoriteSongs.length === 0) {
-
         favoriteList.innerHTML = "No favorite songs yet.";
-
     } else {
-
         favoriteList.innerHTML = "";
-
         favoriteSongs.forEach(function(song) {
-
             let favoriteSong = window.songLibrary.find(function(item) {
-    return item.number === song;
-});
-
-let title = favoriteSong ? favoriteSong.title : "Unknown Song";
-
+                return item.number === song;
+            });
+            let title = favoriteSong ? favoriteSong.title : "Unknown Song";
             favoriteList.innerHTML +=
                 '<button class="song-item" onclick="openSong(' + song + ')">' +
                 '<span class="song-number">★</span>' +
@@ -907,23 +939,25 @@ let title = favoriteSong ? favoriteSong.title : "Unknown Song";
         });
     }
 
-        document.getElementById("favoritesScreen").classList.remove("hidden");
+    document.getElementById("favoritesScreen").classList.remove("hidden");
+    history.pushState({ locked: true, screen: "favorites" }, "", "#favorites");
 }
 
 function showAbout() {
-
     hideAllScreens();
-
     document.getElementById("aboutScreen").classList.remove("hidden");
+    history.pushState({ locked: true, screen: "about" }, "", "#about");
 }
-        function showSettings() {
 
+function showSettings() {
     hideAllScreens();
-
     document.getElementById("settingsScreen").classList.remove("hidden");
-  }
-function openSong(number) {
+    history.pushState({ locked: true, screen: "settings" }, "", "#settings");
+}
 
+
+function openSong(number) {
+let songSource = history.state ? history.state.screen : "songs";
     hideAllScreens();
 
     currentSong = number;
@@ -956,6 +990,19 @@ function openSong(number) {
 document.getElementById("lyricsText").innerText = formattedLyrics;
 
     document.getElementById("lyricsScreen").classList.remove("hidden");
+ // Inside openSong(number):
+if (!handlingBack) {
+    history.pushState(
+        {
+            screen: "lyrics",
+            songNumber: number,
+            source: songSource
+        },
+        "",
+        "#lyrics"
+    );
+}
+
 }
       function showToast(message) {
     let toast = document.getElementById("toast");
@@ -995,6 +1042,49 @@ function toggleFavorite() {
 
     localStorage.setItem("favoriteSongs", JSON.stringify(favoriteSongs));
 }
+      async function shareSong() {
+    const title = document.getElementById("songTitle").innerText;
+    const lyrics = document.getElementById("lyricsText").innerText;
+
+    const shareText = title + "\n\n" + lyrics;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: title,
+                text: shareText
+            });
+        } catch (error) {
+            // User cancelled sharing
+        }
+    } else {
+        showToast("Sharing is not supported on this device");
+    }
+      document.addEventListener("DOMContentLoaded", function() {
+
+    document.addEventListener("contextmenu", function(event) {
+        event.preventDefault();
+    }, true);
+
+    document.addEventListener("selectstart", function(event) {
+        event.preventDefault();
+    }, true);
+
+    document.addEventListener("dragstart", function(event) {
+        event.preventDefault();
+    }, true);
+
+    document.addEventListener("copy", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+
+    document.addEventListener("cut", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+
+});
 function toggleMenu() {
 
     document.getElementById("popupMenu").classList.toggle("show");
@@ -1162,6 +1252,72 @@ loadSettings();
     </script>
 <div id="toast" class="toast"></div>
 <script>
+// APP NAVIGATION
+let handlingBack = false;
+
+// Make Home the starting point
+history.replaceState(
+    { screen: "home" },
+    "",
+    location.pathname + location.search
+);
+
+
+// APP NAVIGATION
+let handlingBack = false;
+
+// Set Home as baseline
+if (!history.state) {
+    history.replaceState(
+        { screen: "home" },
+        "",
+        location.pathname + location.search
+    );
+}
+
+// Handle Android gesture / back button
+window.addEventListener("popstate", function (event) {
+    let activeScreen = getCurrentScreen();
+
+    // Lock back gesture ONLY for Settings, About, and Favorites
+    if (
+        activeScreen === "settingsScreen" ||
+        activeScreen === "aboutScreen" ||
+        activeScreen === "favoritesScreen"
+    ) {
+        // Push state back so pressing/swiping back does nothing
+        history.pushState({ locked: true }, "", window.location.hash);
+        return;
+    }
+
+    // Normal back behavior for Home, Songs, Search, and Lyrics
+    handlingBack = true;
+    const state = event.state;
+    const screen = state ? state.screen : "home";
+
+    if (screen === "home") {
+        showHome();
+    } else if (screen === "songs") {
+        showSongs();
+    } else if (screen === "search") {
+        showSearch();
+    } else if (screen === "lyrics") {
+        if (state && state.songNumber) {
+            openSong(state.songNumber);
+        }
+    }
+    handlingBack = false;
+});
+
+
+// Register Service Worker
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function() {
+        navigator.serviceWorker.register("./sw.js");
+    });
+}
+</script>
+
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function() {
         navigator.serviceWorker.register("./service-worker.js");
