@@ -1,4 +1,4 @@
-const CACHE_NAME = "songs-of-worship-praise-v1";
+const CACHE_NAME = "songs-of-worship-praise-v2";
 
 const FILES_TO_CACHE = [
     "./",
@@ -10,16 +10,17 @@ const FILES_TO_CACHE = [
     "./Bald-eagle.jpg"
 ];
 
-// Install service worker
+// Install
 self.addEventListener("install", event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => cache.addAll(FILES_TO_CACHE))
     );
+
     self.skipWaiting();
 });
 
-// Activate service worker
+// Activate
 self.addEventListener("activate", event => {
     event.waitUntil(
         caches.keys().then(keys =>
@@ -30,13 +31,40 @@ self.addEventListener("activate", event => {
             )
         )
     );
+
     self.clients.claim();
 });
 
-// Serve cached files when offline
+// Fetch
 self.addEventListener("fetch", event => {
     event.respondWith(
         caches.match(event.request)
-            .then(response => response || fetch(event.request))
+            .then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+
+                return fetch(event.request)
+                    .then(networkResponse => {
+
+                        // Save successful requests for future offline use
+                        if (
+                            networkResponse &&
+                            networkResponse.status === 200 &&
+                            networkResponse.type === "basic"
+                        ) {
+                            const responseClone = networkResponse.clone();
+
+                            caches.open(CACHE_NAME).then(cache => {
+                                cache.put(event.request, responseClone);
+                            });
+                        }
+
+                        return networkResponse;
+                    });
+            })
+            .catch(() => {
+                return caches.match("./index.html");
+            })
     );
 });
